@@ -1,0 +1,25 @@
+{
+  "name": "smart-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "watch": "watchify js/main.js -o js/bundle.js -dv",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^3.3.7",
+    "d3": "^4.2.0",
+    "handlebars": "^4.0.5",
+    "jquery": "^2.1.0",
+    "ldf-client": "^1.4.0",
+    "leaflet": "^0.7.7",
+    "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "watchify": "^3.7.0",
+    "browserify": "^13.1.0"
+  }
+}

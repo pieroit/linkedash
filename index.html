@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Wow... such smart</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="node_modules/leaflet/dist/leaflet.css">
+        <link rel="stylesheet" href="css/main.css">
+        
+
+        <script src="node_modules/jquery/dist/cdn/jquery-2.1.0.min.js"></script>
+        <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+        <script src="node_modules/ldf-client/ldf-client-browser.js"></script>
+        <script src="js/bundle.js"></script>
+    
+    </head>
+    <body>
+        
+        <div id="main">
+                                  
+            <input id="lookup-query" value="Guidonia Montecelio">
+            <button id="lookup-run">Run</button>
+            
+            <div id="results"></div>
+            
+        </div>
+        
+        <script id="place-template" class="template" type="text/x-handlebars-template">
+            <h1 id="title">{{title}}</h1>
+            <div id="description">{{description}}</div>
+            <img src={{image}} />
+            <div id="map-container"></div>
+        </script>
+        
+    </body>
+</html>
