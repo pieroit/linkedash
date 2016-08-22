@@ -10,39 +10,84 @@ var smartClient = {};
 
 jQuery(document).ready(function(){
     
+    // user search submitted
     $('#lookup-run').click(runLookupQuery);
+    $('#lookup-query').keyup(function(e){
+        if(e.keyCode == 13){
+            runLookupQuery();
+        }
+    });
     
+    // collect fragments
     smartClient.fragments = {
         'dbpedia' : new ldf.FragmentsClient('http://fragments.dbpedia.org/2015/en'),
-        'ispra'   : new ldf.FragmentsClient('http://localhost:5000/ispra')
+        'ispra'   : new ldf.FragmentsClient('http://localhost:3000/ispra')
     }
-});
-
+    
+});    
+    
+    
+/** After the user clicks OK:
+ * 1 - do a dbPedia lookup
+ * 2 - disambiguate (optional)
+ * 3 - search synonims + neighbors
+ * 4 - create store
+ * 5 - render all boxes
+ *
+ */
 function runLookupQuery(){
     
     $('#results').empty();
     
-    var query = $('#lookup-query').val();
-    var dbPediaLookupURI = 'http://lookup.dbpedia.org/api/search.asmx/KeywordSearch?QueryString=' + query;
+    var userQuery = $('#lookup-query').val();
     
-    $.getJSON(dbPediaLookupURI, function(lookupResults){
-        
-        if(_.has(lookupResults, 'results')){
-            // TODO: disambiguation
+    smartClient.graph = [];
+    var subjectURI = '';
+    var separationDegrees = 2;
+    
+    dbPediaLookup(userQuery)
+        .then(function(dbPediaURI){
             
-            smartClient.graph = [];
-            var mainURI = lookupResults['results'][0]['uri'];
-            
-            var sparqlPromises = [runMainSparqlQuery(mainURI), runISPRASparqlQuery(mainURI)];
-            Promise.all(sparqlPromises).then(function(result){
-                //console.log(smartClient.graph);
-                runTemplate(mainURI);
-            }).catch(function(err){
-                console.error(err);
+            subjectURI = dbPediaURI;
+    
+            // explode graph
+            var explosionQueries = [runMainSparqlQuery(dbPediaURI), runISPRASparqlQuery(dbPediaURI)];
+            return Promise.all(explosionQueries);
+        })
+        .then(function(){
+            smartClient.graph.forEach(function(t){
+                console.log(t);
             });
+            runTemplate(subjectURI);
+        })
+        /*.then(function(){
             
-            //runISPRASparqlQuery(mainURI);
-        }
+        })
+        .then(function(ok){
+            boxes.forEach(function(b){
+                b.render();
+            });
+        })*/
+        .catch(function(error){
+            console.error(error);
+        });
+}
+    
+function dbPediaLookup(userQuery){
+    
+    return new Promise(function(resolve, reject){
+        
+        var dbPediaLookupURI = 'http://lookup.dbpedia.org/api/search.asmx/KeywordSearch?QueryString=' + userQuery;
+        $.getJSON(dbPediaLookupURI, function(lookupResults){
+
+            if(_.has(lookupResults, 'results')){
+                // TODO: disambiguation
+                var mainURI = lookupResults['results'][0]['uri'];
+                resolve(mainURI);
+            } else {
+                reject('dbPedia URI not found');
+            }
+        });
     });
 }
 
@@ -52,13 +97,14 @@ function runISPRASparqlQuery(uri){
         var query = 'CONSTRUCT WHERE { ' +
             '?s <http://www.w3.org/2002/07/owl#sameAs> <' + uri + '> . ' +
             '?s ?p ?o . ' +
-        '} LIMIT 1000';
+        '} LIMIT 10000';
 
         var results = new ldf.SparqlIterator(query, { fragmentsClient: smartClient.fragments['ispra'] });
         
         results.on('data', function(d){
             smartClient.graph.push(d);
         });
+        
         results.on('end', function(){
             resolve();
         });
@@ -72,7 +118,7 @@ function runMainSparqlQuery(uri){
 
         var query = 'CONSTRUCT WHERE {' +
             '<' + uri + '> ?p ?o . ' +
-        '} LIMIT 1000';
+        '} LIMIT 10000';
 
         var results = new ldf.SparqlIterator(query, { fragmentsClient: smartClient.fragments['dbpedia'] });
         results.on('data', function(d){
@@ -135,7 +181,13 @@ function findFirstInGraph(subject, predicate){
     var triple = _.find(smartClient.graph, function(t){
         return (t.subject == subject) && (t.predicate == predicate);
     });
-    return triple.object;
+    
+    if(triple){
+        return triple.object;
+    } else {
+        console.warn('could not find ' + subject + ' ' + predicate + ' ?');
+        return null;
+    }
 }
 
 function stringifyTriple(t){
